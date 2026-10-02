@@ -1,5 +1,6 @@
 import Photos
 import SwiftUI
+import UIKit
 
 struct AssetThumbnail: View {
     let asset: PHAsset
@@ -11,7 +12,7 @@ struct AssetThumbnail: View {
         self.asset = asset
         self.contentMode = contentMode
         self.cornerRadius = cornerRadius
-        _loader = StateObject(wrappedValue: AssetImageLoader(asset: asset))
+        _loader = StateObject(wrappedValue: AssetImageLoader())
     }
 
     var body: some View {
@@ -30,26 +31,39 @@ struct AssetThumbnail: View {
             .clipped()
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         }
-        .onAppear { loader.load(size: CGSize(width: 900, height: 1200)) }
+        .onAppear { loader.load(asset: asset, size: CGSize(width: 900, height: 1200)) }
+        .onChange(of: asset.localIdentifier) { _ in
+            loader.load(asset: asset, size: CGSize(width: 900, height: 1200))
+        }
     }
 }
 
 @MainActor
 final class AssetImageLoader: ObservableObject {
     @Published var image: UIImage?
-    private let asset: PHAsset
     private var requestID: PHImageRequestID = PHInvalidImageRequestID
+    private var loadedAssetID: String?
 
-    init(asset: PHAsset) { self.asset = asset }
+    func load(asset: PHAsset, size: CGSize) {
+        let assetID = asset.localIdentifier
+        guard loadedAssetID != assetID else { return }
 
-    func load(size: CGSize) {
+        if requestID != PHInvalidImageRequestID {
+            PHImageManager.default().cancelImageRequest(requestID)
+        }
+        loadedAssetID = assetID
+        image = nil
+
         let options = PHImageRequestOptions()
         options.deliveryMode = .opportunistic
         options.resizeMode = .fast
         options.isNetworkAccessAllowed = true
         requestID = PHImageManager.default().requestImage(for: asset, targetSize: size, contentMode: .aspectFit, options: options) { [weak self] image, _ in
             guard let image else { return }
-            Task { @MainActor in self?.image = image }
+            Task { @MainActor in
+                guard let self, self.loadedAssetID == assetID else { return }
+                self.image = image
+            }
         }
     }
 
