@@ -5,9 +5,12 @@ An unofficial native SwiftUI photo-cleanup app based on the interaction shown in
 ## Included
 
 - Month-by-month photo review, sorted by capture date.
+- A Random 40 mode that shuffles a selection of up to 40 photos from the library.
 - Swipe right to keep and swipe left to queue for deletion; both actions have buttons too.
 - Undo the last swipe and bookmark a photo for later.
 - Final deletion review grid where a photo can be removed from the queue.
+- Return to the month picker during a session and open any month again.
+- Keep decisions are excluded from the deletion review and delete request.
 - Confirmed deletion through Apple's Photos framework, plus per-session and all-time storage totals.
 - “On This Day,” saved bookmarks, and persistent month progress.
 

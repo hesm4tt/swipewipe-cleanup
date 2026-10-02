@@ -86,6 +86,22 @@ struct HomeView: View {
                         Text("Pick a month and make a little room.")
                             .font(.subheadline).foregroundStyle(.white.opacity(0.62))
                     }
+                    Button { library.beginRandomForty() } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "shuffle").font(.title3.weight(.black))
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Random 40").font(.subheadline.weight(.bold))
+                                Text("\(min(40, library.allAssets.count)) random photos").font(.caption).opacity(0.8)
+                            }
+                            Spacer()
+                            Image(systemName: "arrow.right").font(.system(size: 15, weight: .bold))
+                        }
+                        .foregroundStyle(.black).padding(16).frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Palette.purple, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(library.allAssets.isEmpty || library.isLoading)
+                    .opacity(library.allAssets.isEmpty || library.isLoading ? 0.45 : 1)
                     if library.isLoading {
                         ProgressView("Finding photos…").tint(Palette.peach).padding(.vertical, 36)
                     } else if library.months.isEmpty {
@@ -222,10 +238,11 @@ struct SwipeFlowView: View {
     private var swipeScreen: some View {
         VStack(spacing: 0) {
             HStack {
-                Button { library.finishSessionWithoutDeletion() } label: { Label(month.date.formatted(.dateTime.month(.abbreviated).year()).uppercased(), systemImage: "arrow.left").font(.headline) }
+                Button { library.finishSessionWithoutDeletion() } label: { Label("MONTHS", systemImage: "chevron.left").font(.caption.weight(.bold)) }
+                Spacer()
+                Text(month.title.uppercased()).font(.caption.weight(.bold)).lineLimit(1).foregroundStyle(.white.opacity(0.75))
                 Spacer()
                 Button { showPhotoInfo = true } label: { Image(systemName: "info.circle.fill").font(.title3) }
-                Spacer()
                 Text("\(library.currentMonthProgress.done + 1)/\(library.currentMonthProgress.total)")
                     .font(.headline.monospacedDigit())
                 Button { library.undoLastDecision() } label: { Image(systemName: "arrow.uturn.backward").font(.title3) }
@@ -249,8 +266,8 @@ struct SwipeFlowView: View {
                     .gesture(DragGesture(minimumDistance: 12)
                         .onChanged { dragOffset = $0.translation }
                         .onEnded { value in
-                            if value.translation.width < -100 { decide(keep: false) }
-                            else if value.translation.width > 100 { decide(keep: true) }
+                            if value.translation.width < -100 { decide(.delete) }
+                            else if value.translation.width > 100 { decide(.keep) }
                             else { withAnimation(.spring) { dragOffset = .zero } }
                         })
                     .animation(.spring(response: 0.28, dampingFraction: 0.78), value: dragOffset)
@@ -259,21 +276,21 @@ struct SwipeFlowView: View {
             }
 
             HStack(alignment: .center) {
-                Button { decide(keep: false) } label: { Text("DELETE").font(.system(size: 17, weight: .black, design: .rounded)).foregroundStyle(Palette.purple) }
+                Button { decide(.delete) } label: { Text("DELETE").font(.system(size: 17, weight: .black, design: .rounded)).foregroundStyle(Palette.purple) }
                 Spacer()
                 Button { if let asset = library.currentSwipeAsset { library.toggleBookmark(asset) } } label: {
                     Image(systemName: library.currentSwipeAsset.map(library.isBookmarked) == true ? "bookmark.fill" : "bookmark")
                         .font(.system(size: 22, weight: .semibold)).foregroundStyle(Palette.peach)
                 }
                 Spacer()
-                Button { decide(keep: true) } label: { Text("KEEP").font(.system(size: 17, weight: .black, design: .rounded)).foregroundStyle(Palette.mint) }
+                Button { decide(.keep) } label: { Text("KEEP").font(.system(size: 17, weight: .black, design: .rounded)).foregroundStyle(Palette.mint) }
             }
             .padding(.horizontal, 26).padding(.top, 12).padding(.bottom, 20)
         }
     }
 
-    private func decide(keep: Bool) {
-        withAnimation(.easeInOut(duration: 0.18)) { dragOffset = .zero; library.decideCurrent(keep: keep) }
+    private func decide(_ decision: PhotoDecision) {
+        withAnimation(.easeInOut(duration: 0.18)) { dragOffset = .zero; library.decideCurrent(decision) }
     }
 }
 
@@ -294,7 +311,9 @@ struct ReviewQueueView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Button { library.finishSessionWithoutDeletion() } label: { Label("\(month.date.formatted(.dateTime.month(.abbreviated).year()).uppercased())", systemImage: "arrow.left").font(.headline) }
+                Button { library.finishSessionWithoutDeletion() } label: { Label("MONTHS", systemImage: "chevron.left").font(.caption.weight(.bold)) }
+                Spacer()
+                Text(month.title.uppercased()).font(.caption.weight(.bold)).lineLimit(1).foregroundStyle(.white.opacity(0.75))
                 Spacer()
                 Text("REVIEW").font(.caption.weight(.bold)).tracking(1.5).foregroundStyle(.white.opacity(0.55))
             }
@@ -302,8 +321,8 @@ struct ReviewQueueView: View {
             if library.currentDeletionAssets.isEmpty {
                 Spacer()
                 Image(systemName: "checkmark.circle.fill").font(.system(size: 56)).foregroundStyle(Palette.mint)
-                Text("Month complete").font(.system(size: 28, weight: .bold, design: .rounded)).padding(.top, 16)
-                Text("You kept every photo in this month.").font(.subheadline).foregroundStyle(.white.opacity(0.65)).padding(.top, 4)
+                Text(month.displayName == "Random 40" ? "Selection complete" : "Month complete").font(.system(size: 28, weight: .bold, design: .rounded)).padding(.top, 16)
+                Text(month.displayName == "Random 40" ? "You kept every photo in this selection." : "You kept every photo in this month.").font(.subheadline).foregroundStyle(.white.opacity(0.65)).padding(.top, 4)
                 Spacer()
                 Button { library.finishSessionWithoutDeletion() } label: { Text("Return Home").font(.headline.weight(.bold)).foregroundStyle(.black).frame(maxWidth: .infinity).padding(.vertical, 17).background(Palette.mint, in: Capsule()) }
                     .padding(.horizontal, 20).padding(.bottom, 20)

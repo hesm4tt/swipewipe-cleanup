@@ -2,12 +2,18 @@ import Foundation
 import Photos
 import SwiftUI
 
+enum PhotoDecision: String, Codable {
+    case keep
+    case delete
+}
+
 struct PhotoMonth: Identifiable {
     let id: String
     let date: Date
     let assets: [PHAsset]
+    var displayName: String? = nil
 
-    var title: String { date.formatted(.dateTime.month(.wide).year()) }
+    var title: String { displayName ?? date.formatted(.dateTime.month(.wide).year()) }
 }
 
 @MainActor
@@ -26,23 +32,28 @@ final class PhotoLibraryStore: ObservableObject {
     @Published private(set) var bookmarkedIDs: Set<String>
     @Published private(set) var completedMonthIDs: Set<String>
 
-    private var decisions: [String: [String: String]]
-    private var undoStack: [(assetID: String, decision: String?)] = []
+    private var decisions: [String: [String: PhotoDecision]]
+    private var undoStack: [(assetID: String, decision: PhotoDecision?)] = []
     private let defaults = UserDefaults.standard
 
     @Published private(set) var deletedCount: Int
     @Published private(set) var savedBytes: Int64
 
     private let bookmarksKey = "swipewipe.bookmarks.v1"
-    private let decisionsKey = "swipewipe.decisions.v1"
-    private let completedMonthsKey = "swipewipe.completed-months.v1"
+    private let decisionsKey = "swipewipe.decisions.v2"
+    private let completedMonthsKey = "swipewipe.completed-months.v2"
     private let deletedCountKey = "swipewipe.deleted-count.v1"
     private let savedBytesKey = "swipewipe.saved-bytes.v1"
 
     init() {
         bookmarkedIDs = Set(defaults.stringArray(forKey: bookmarksKey) ?? [])
         completedMonthIDs = Set(defaults.stringArray(forKey: completedMonthsKey) ?? [])
-        decisions = defaults.dictionary(forKey: decisionsKey) as? [String: [String: String]] ?? [:]
+        if let data = defaults.data(forKey: decisionsKey),
+           let saved = try? JSONDecoder().decode([String: [String: PhotoDecision]].self, from: data) {
+            decisions = saved
+        } else {
+            decisions = [:]
+        }
         deletedCount = defaults.integer(forKey: deletedCountKey)
         savedBytes = Int64(defaults.object(forKey: savedBytesKey) as? Int ?? 0)
         refreshAuthorizationAndLibrary()
@@ -55,8 +66,11 @@ final class PhotoLibraryStore: ObservableObject {
 
     var currentDeletionAssets: [PHAsset] {
         guard let activeMonth else { return [] }
-        let ids = Set(swipeQueue)
-        return activeMonth.assets.filter { ids.contains($0.localIdentifier) }
+        let queuedIDs = Set(swipeQueue)
+        return activeMonth.assets.filter { asset in
+            queuedIDs.contains(asset.localIdentifier)
+                && decisions[activeMonth.id]?[asset.localIdentifier] == .delete
+        }
     }
 
     var currentMonthProgress: (done: Int, total: Int) {
@@ -132,11 +146,17 @@ final class PhotoLibraryStore: ObservableObject {
     }
 
     func begin(_ month: PhotoMonth) {
+        if completedMonthIDs.contains(month.id) {
+            decisions[month.id] = [:]
+            completedMonthIDs.remove(month.id)
+            persistDecisions()
+            defaults.set(Array(completedMonthIDs), forKey: completedMonthsKey)
+        }
         activeMonth = month
         lastResult = nil
         undoStack.removeAll()
         let monthDecisions = decisions[month.id] ?? [:]
-        swipeQueue = month.assets.filter { monthDecisions[$0.localIdentifier] == "delete" }.map(\.localIdentifier)
+        swipeQueue = month.assets.filter { monthDecisions[$0.localIdentifier] == .delete }.map(\.localIdentifier)
         swipeAssets = month.assets.filter { monthDecisions[$0.localIdentifier] == nil }
         swipeIndex = 0
         if swipeAssets.isEmpty && swipeQueue.isEmpty {
@@ -144,12 +164,28 @@ final class PhotoLibraryStore: ObservableObject {
         }
     }
 
-    func decideCurrent(keep: Bool) {
+    func beginRandomForty() {
+        guard !allAssets.isEmpty else { return }
+        let selection = Array(allAssets.shuffled().prefix(40))
+        let randomMonth = PhotoMonth(id: "random-40", date: Date(), assets: selection, displayName: "Random 40")
+        decisions[randomMonth.id] = [:]
+        completedMonthIDs.remove(randomMonth.id)
+        persistDecisions()
+        defaults.set(Array(completedMonthIDs), forKey: completedMonthsKey)
+        begin(randomMonth)
+    }
+
+    func decideCurrent(_ decision: PhotoDecision) {
         guard let month = activeMonth, let asset = currentSwipeAsset else { return }
         let old = decisions[month.id]?[asset.localIdentifier]
         undoStack.append((asset.localIdentifier, old))
-        decisions[month.id, default: [:]][asset.localIdentifier] = keep ? "keep" : "delete"
-        if !keep { swipeQueue.append(asset.localIdentifier) }
+        decisions[month.id, default: [:]][asset.localIdentifier] = decision
+        switch decision {
+        case .keep:
+            swipeQueue.removeAll { $0 == asset.localIdentifier }
+        case .delete:
+            if !swipeQueue.contains(asset.localIdentifier) { swipeQueue.append(asset.localIdentifier) }
+        }
         persistDecisions()
         swipeIndex += 1
         updateCompletionIfNeeded()
@@ -157,18 +193,18 @@ final class PhotoLibraryStore: ObservableObject {
 
     func undoLastDecision() {
         guard let month = activeMonth, let last = undoStack.popLast() else { return }
-        if decisions[month.id]?[last.assetID] == "delete" {
+        if decisions[month.id]?[last.assetID] == .delete {
             swipeQueue.removeAll { $0 == last.assetID }
         }
         if let old = last.decision {
             decisions[month.id, default: [:]][last.assetID] = old
+            if old == .delete && !swipeQueue.contains(last.assetID) { swipeQueue.append(last.assetID) }
         } else {
             decisions[month.id]?.removeValue(forKey: last.assetID)
         }
         swipeIndex = max(0, swipeIndex - 1)
         persistDecisions()
-        completedMonthIDs.remove(month.id)
-        defaults.set(Array(completedMonthIDs), forKey: completedMonthsKey)
+        updateCompletionIfNeeded()
     }
 
     func toggleBookmark(_ asset: PHAsset) {
@@ -187,7 +223,7 @@ final class PhotoLibraryStore: ObservableObject {
     func removeFromQueue(_ asset: PHAsset) {
         guard let month = activeMonth else { return }
         swipeQueue.removeAll { $0 == asset.localIdentifier }
-        decisions[month.id, default: [:]][asset.localIdentifier] = "keep"
+        decisions[month.id, default: [:]][asset.localIdentifier] = .keep
         persistDecisions()
         updateCompletionIfNeeded()
     }
@@ -212,8 +248,14 @@ final class PhotoLibraryStore: ObservableObject {
                     self.savedBytes += bytes
                     self.defaults.set(self.deletedCount, forKey: self.deletedCountKey)
                     self.defaults.set(Int(self.savedBytes), forKey: self.savedBytesKey)
-                    if let monthID = self.activeMonth?.id {
+                    let monthID = self.activeMonth?.id
+                    let remainingAssets = (self.activeMonth?.assets ?? []).filter { !ids.contains($0.localIdentifier) }
+                    if let monthID {
                         for id in ids { self.decisions[monthID]?.removeValue(forKey: id) }
+                        let allRemainingKept = !remainingAssets.isEmpty && remainingAssets.allSatisfy {
+                            self.decisions[monthID]?[$0.localIdentifier] == .keep
+                        }
+                        if allRemainingKept { self.markMonthComplete(monthID) }
                     }
                     self.persistDecisions()
                     self.lastResult = CleanupResult(count: ids.count, bytes: bytes, monthTitle: self.activeMonth?.title ?? "your library")
@@ -229,7 +271,7 @@ final class PhotoLibraryStore: ObservableObject {
     }
 
     func finishSessionWithoutDeletion() {
-        if let monthID = activeMonth?.id { markMonthComplete(monthID) }
+        updateCompletionIfNeeded()
         activeMonth = nil
         swipeAssets = []
         swipeQueue = []
@@ -256,7 +298,12 @@ final class PhotoLibraryStore: ObservableObject {
     private func updateCompletionIfNeeded() {
         guard let month = activeMonth else { return }
         let progress = currentMonthProgress
-        if progress.total > 0 && progress.done == progress.total { markMonthComplete(month.id) }
+        if progress.total > 0 && progress.done == progress.total && swipeQueue.isEmpty {
+            markMonthComplete(month.id)
+        } else {
+            completedMonthIDs.remove(month.id)
+            defaults.set(Array(completedMonthIDs), forKey: completedMonthsKey)
+        }
     }
 
     private func reconcileCompletedMonths() {
@@ -271,7 +318,9 @@ final class PhotoLibraryStore: ObservableObject {
     }
 
     private func persistDecisions() {
-        defaults.set(decisions, forKey: decisionsKey)
+        if let data = try? JSONEncoder().encode(decisions) {
+            defaults.set(data, forKey: decisionsKey)
+        }
     }
 }
 
