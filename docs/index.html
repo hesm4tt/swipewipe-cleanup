@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0d11">
+  <meta name="description" content="Install Swipewipe Cleanup with LiveContainer, SideStore, AltStore Classic, SideInstaller, Sideloadly, or your preferred IPA signer.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Swipewipe Cleanup — camera roll cleanup, on your terms">
+  <meta property="og:description" content="A native iOS camera roll cleaner for your sideloading setup. Choose your installer and download the latest IPA.">
+  <meta property="og:image" content="https://hesm4tt.github.io/swipewipe-cleanup/assets/repo-banner.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <title>Install Swipewipe — Camera roll cleanup</title>
+  <link rel="icon" type="image/svg+xml" href="assets/swipewipe-mark.svg">
+  <style>
+    :root { color-scheme: dark; --bg:#0b0d11; --panel:#12151b; --line:#262a34; --ink:#f7f3ef; --muted:#aaa7b2; --peach:#f0b79e; --mint:#8be5bb; --violet:#a893f0; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--ink); background:radial-gradient(ellipse at 82% -8%,#4b315a44,transparent 38%),var(--bg); font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    a { color:inherit; }
+    .wrap { width:min(100% - 36px,920px); margin:auto; padding:26px 0 64px; }
+    header { display:flex; align-items:center; gap:12px; }
+    .mark { width:42px; height:42px; border-radius:13px; }
+    .brand { font-size:15px; font-weight:650; letter-spacing:-.02em; }
+    .hero { padding:72px 0 38px; max-width:740px; }
+    .eyebrow { color:var(--mint); text-transform:uppercase; font-size:12px; font-weight:700; letter-spacing:.16em; }
+    h1 { max-width:700px; margin:12px 0 14px; font-size:clamp(40px,8vw,70px); line-height:.99; letter-spacing:-.065em; }
+    .hero p { max-width:630px; margin:0; color:var(--muted); font-size:18px; }
+    .top-actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:25px; }
+    .button { display:inline-flex; min-height:48px; align-items:center; justify-content:center; border:1px solid var(--line); border-radius:14px; padding:0 17px; text-decoration:none; font-weight:650; transition:transform .16s ease,border-color .16s ease,background .16s ease; }
+    .button:hover { transform:translateY(-2px); border-color:#777084; }
+    .button.primary { color:#17121a; border-color:transparent; background:linear-gradient(110deg,var(--peach),#d99fd7 60%,#b6a5f1); }
+    .notice { display:none; margin:8px 0 24px; padding:13px 16px; border:1px solid #665c73; border-radius:14px; color:#e5ddeb; background:#211c2b; }
+    .notice.show { display:block; }
+    h2 { margin:0 0 15px; font-size:21px; letter-spacing:-.03em; }
+    .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:13px; }
+    .card { display:flex; min-height:200px; flex-direction:column; align-items:flex-start; padding:20px; border:1px solid var(--line); border-radius:19px; background:linear-gradient(155deg,#171a21,#111318 78%); scroll-margin-top:24px; }
+    .card h3 { margin:0 0 7px; font-size:18px; letter-spacing:-.025em; }
+    .card p { margin:0; color:var(--muted); font-size:14px; }
+    .card .links { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:auto; padding-top:18px; font-size:14px; font-weight:630; }
+    .card .links a { text-decoration:none; }
+    .card .links a:first-child { color:var(--mint); }
+    .card .links a:hover { text-decoration:underline; }
+    .section { margin-top:40px; }
+    .plain { padding:18px 20px; border:1px solid var(--line); border-radius:16px; color:var(--muted); background:#111318; }
+    .plain strong { color:var(--ink); }
+    code { overflow-wrap:anywhere; color:#d9c9f5; font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; }
+    footer { display:flex; flex-wrap:wrap; justify-content:space-between; gap:14px; margin-top:40px; padding-top:20px; border-top:1px solid var(--line); color:var(--muted); font-size:13px; }
+    footer a { text-decoration:none; }
+    footer a:hover { color:var(--ink); }
+    @media (max-width:620px) { .wrap { width:min(100% - 28px,920px); padding-top:18px; } .hero { padding:57px 0 31px; } .grid { grid-template-columns:1fr; } .card { min-height:175px; } }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important; transition:none!important; } }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <img class="mark" src="assets/swipewipe-mark.svg" alt="">
+      <span class="brand">Swipewipe Cleanup</span>
+    </header>
+
+    <section class="hero">
+      <div class="eyebrow">Your photos. Your call.</div>
+      <h1>A little less clutter. A lot more control.</h1>
+      <p>Swipewipe is a native iOS camera roll cleaner for your sideloading setup. Pick the installer you use, review at your pace, and confirm before anything is deleted.</p>
+      <div class="top-actions">
+        <a class="button primary" href="https://github.com/hesm4tt/swipewipe-cleanup/releases/latest/download/SwipewipeCleanup.ipa">Download IPA</a>
+        <a class="button" href="https://github.com/hesm4tt/swipewipe-cleanup">View source</a>
+      </div>
+    </section>
+
+    <div id="route-notice" class="notice" role="status" aria-live="polite"></div>
+
+    <section aria-labelledby="install-heading">
+      <h2 id="install-heading">Choose your installer</h2>
+      <div class="grid">
+        <article class="card" id="livecontainer">
+          <h3>LiveContainer</h3>
+          <p>Install Swipewipe as a guest app. LiveContainer is one supported option among standard sideloading methods.</p>
+          <div class="links"><a href="?tool=livecontainer" data-route="livecontainer">Open in LiveContainer ↗</a><a href="https://github.com/khanhduytran0/LiveContainer">Project ↗</a></div>
+        </article>
+        <article class="card" id="sidestore">
+          <h3>SideStore</h3>
+          <p>Open the latest IPA in SideStore using its install link.</p>
+          <div class="links"><a href="?tool=sidestore" data-route="sidestore">Install with SideStore ↗</a><a href="https://sidestore.io/">SideStore ↗</a></div>
+        </article>
+        <article class="card" id="altstore">
+          <h3>AltStore Classic</h3>
+          <p>Add the Swipewipe source, then install from your sources list. This build is not notarized for AltStore PAL.</p>
+          <div class="links"><a href="?tool=altstore" data-route="altstore">Add source ↗</a><a href="AltStoreSource.json">Source JSON</a></div>
+        </article>
+        <article class="card" id="sideinstaller">
+          <h3>SideInstaller</h3>
+          <p>Download the IPA, then import it from Files or a download URL in SideInstaller.</p>
+          <div class="links"><a href="https://github.com/FrizzleM/SideInstaller">Open SideInstaller ↗</a><a href="https://github.com/hesm4tt/swipewipe-cleanup/releases/latest/download/SwipewipeCleanup.ipa">Get IPA ↓</a></div>
+        </article>
+        <article class="card" id="sideloadly">
+          <h3>Sideloadly</h3>
+          <p>Download the IPA and select it in Sideloadly on your Mac or PC.</p>
+          <div class="links"><a href="https://sideloadly.io/">Open Sideloadly ↗</a><a href="https://github.com/hesm4tt/swipewipe-cleanup/releases/latest/download/SwipewipeCleanup.ipa">Get IPA ↓</a></div>
+        </article>
+        <article class="card" id="other">
+          <h3>Another IPA signer?</h3>
+          <p>Use the direct IPA with your preferred signing or installation flow.</p>
+          <div class="links"><a href="https://github.com/hesm4tt/swipewipe-cleanup/releases/latest/download/SwipewipeCleanup.ipa">Download latest IPA ↓</a><a href="https://github.com/hesm4tt/swipewipe-cleanup/releases">All releases ↗</a></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Before you install</h2>
+      <div class="plain"><strong>Unsigned IPA · iOS 16 or later · arm64</strong><br>Use a sideloading method that supports your device and signing setup. Swipewipe works with Photos on device. Photos are not deleted during swiping; review the deletion queue and confirm it in the app.</div>
+    </section>
+
+    <section class="section">
+      <h2>Add the source manually</h2>
+      <div class="plain">In AltStore Classic, add this source URL:<br><code>https://hesm4tt.github.io/swipewipe-cleanup/AltStoreSource.json</code></div>
+    </section>
+
+    <footer>
+      <span>Independent project · Not affiliated with the installer apps listed here.</span>
+      <span><a href="https://github.com/hesm4tt/swipewipe-cleanup">GitHub</a> · <a href="https://github.com/hesm4tt/swipewipe-cleanup/blob/main/CHANGELOG.md">Changelog</a></span>
+    </footer>
+  </main>
+  <script>
+    (() => {
+      const ipa = "https://github.com/hesm4tt/swipewipe-cleanup/releases/latest/download/SwipewipeCleanup.ipa";
+      const source = "https://hesm4tt.github.io/swipewipe-cleanup/AltStoreSource.json";
+      const params = new URLSearchParams(window.location.search);
+      const tool = (params.get("tool") || "").toLowerCase();
+      const routes = {
+        livecontainer: `livecontainer://install?url=${encodeURIComponent(ipa)}`,
+        sidestore: `sidestore://install?url=${encodeURIComponent(ipa)}`,
+        altstore: `altstore-classic://source?url=${encodeURIComponent(source)}`
+      };
+      const manualTools = new Set(["sideinstaller", "sideloadly", "other"]);
+      if (routes[tool]) {
+        window.location.replace(routes[tool]);
+      } else if (manualTools.has(tool)) {
+        const notice = document.getElementById("route-notice");
+        notice.textContent = `For ${tool === "other" ? "your installer" : tool}, download the IPA and follow the import steps on that card.`;
+        notice.classList.add("show");
+        document.getElementById(tool).scrollIntoView({ block: "center" });
+      }
+      document.querySelectorAll("a[data-route]").forEach((link) => {
+        link.addEventListener("click", (event) => {
+          event.preventDefault();
+          const target = link.dataset.route;
+          if (routes[target]) window.location.href = routes[target];
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

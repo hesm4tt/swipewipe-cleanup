@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+  <title id="title">Swipewipe Cleanup</title>
+  <desc id="desc">A calmer way to sort your camera roll. Native iOS photo cleanup for your sideloading setup.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101018"/>
+      <stop offset="1" stop-color="#090d10"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="78%" cy="25%" r="65%">
+      <stop offset="0" stop-color="#8d64b8" stop-opacity=".24"/>
+      <stop offset="1" stop-color="#8d64b8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2=".2">
+      <stop offset="0" stop-color="#f0b79e"/>
+      <stop offset=".52" stop-color="#d28ecc"/>
+      <stop offset="1" stop-color="#9a84ed"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="640" rx="38" fill="url(#background)"/>
+  <rect width="1280" height="640" rx="38" fill="url(#glow)"/>
+  <circle cx="1050" cy="142" r="220" fill="none" stroke="#ffffff" stroke-opacity=".045" stroke-width="1"/>
+  <circle cx="1050" cy="142" r="154" fill="none" stroke="#ffffff" stroke-opacity=".05" stroke-width="1"/>
+  <g transform="translate(110 140) scale(.72)">
+    <rect width="512" height="512" rx="122" fill="#17151f" stroke="#ffffff" stroke-opacity=".12" stroke-width="3"/>
+    <path d="M133 169c45-45 118-57 176-26 36 19 61 52 70 90" fill="none" stroke="url(#accent)" stroke-linecap="round" stroke-width="32"/>
+    <path d="m349 212 34 24 23-34" fill="none" stroke="#f6c7a7" stroke-linecap="round" stroke-linejoin="round" stroke-width="25"/>
+    <path d="M380 293c-45 45-118 57-176 26-36-19-61-52-70-90" fill="none" stroke="#8be5bb" stroke-linecap="round" stroke-width="32"/>
+    <path d="m164 250-34-24-23 34" fill="none" stroke="#8be5bb" stroke-linecap="round" stroke-linejoin="round" stroke-width="25"/>
+    <circle cx="256" cy="256" r="24" fill="#faf7f3"/>
+  </g>
+  <text x="530" y="276" fill="#fbf8f4" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="76" font-weight="700" letter-spacing="-3">Swipewipe</text>
+  <text x="536" y="338" fill="#d5cdd8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="30" font-weight="500">Camera roll cleanup, on your terms.</text>
+  <rect x="536" y="390" width="360" height="2" fill="url(#accent)" opacity=".8"/>
+  <text x="536" y="438" fill="#a9a5b1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="22">Native iOS · Works with your sideloading setup</text>
+</svg>
