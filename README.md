@@ -11,6 +11,7 @@ An unofficial native SwiftUI photo-cleanup app based on the interaction shown in
 - Final deletion review grid where a photo can be removed from the queue.
 - Return to the month picker during a session and open any month again.
 - Keep decisions are excluded from the deletion review and delete request.
+- In-app diagnostic log correlates displayed photo references, decisions, and deletion requests; asset references are salted hashes and logs contain no image content or raw Photos identifiers.
 - Confirmed deletion through Apple's Photos framework, plus per-session and all-time storage totals.
 - “On This Day,” saved bookmarks, and persistent month progress.
 

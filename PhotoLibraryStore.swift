@@ -56,6 +56,11 @@ final class PhotoLibraryStore: ObservableObject {
         }
         deletedCount = defaults.integer(forKey: deletedCountKey)
         savedBytes = Int64(defaults.object(forKey: savedBytesKey) as? Int ?? 0)
+        DiagnosticLog.shared.record("app.launch", details: [
+            "authorization": String(describing: authorizationStatus),
+            "version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown",
+            "build": Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"
+        ])
         refreshAuthorizationAndLibrary()
     }
 
@@ -138,6 +143,11 @@ final class PhotoLibraryStore: ObservableObject {
         months = newMonths
         isLoading = false
         reconcileCompletedMonths()
+        DiagnosticLog.shared.record("library.loaded", details: [
+            "photos": String(fetched.count),
+            "months": String(newMonths.count),
+            "authorization": String(describing: authorizationStatus)
+        ])
     }
 
     func progress(for month: PhotoMonth) -> (done: Int, total: Int) {
@@ -159,6 +169,14 @@ final class PhotoLibraryStore: ObservableObject {
         swipeQueue = month.assets.filter { monthDecisions[$0.localIdentifier] == .delete }.map(\.localIdentifier)
         swipeAssets = month.assets.filter { monthDecisions[$0.localIdentifier] == nil }
         swipeIndex = 0
+        DiagnosticLog.shared.record("session.begin", details: [
+            "month": month.id,
+            "mode": month.displayName ?? "month",
+            "total": String(month.assets.count),
+            "savedKeepDecisions": String(monthDecisions.values.filter { $0 == .keep }.count),
+            "queuedDeleteDecisions": String(swipeQueue.count),
+            "undecided": String(swipeAssets.count)
+        ])
         if swipeAssets.isEmpty && swipeQueue.isEmpty {
             markMonthComplete(month.id)
         }
@@ -175,8 +193,10 @@ final class PhotoLibraryStore: ObservableObject {
         begin(randomMonth)
     }
 
-    func decideCurrent(_ decision: PhotoDecision) {
+    func decideCurrent(_ decision: PhotoDecision, input: String) {
         guard let month = activeMonth, let asset = currentSwipeAsset else { return }
+        let position = currentMonthProgress.done + 1
+        let assetTag = DiagnosticLog.shared.assetTag(for: asset.localIdentifier)
         let old = decisions[month.id]?[asset.localIdentifier]
         undoStack.append((asset.localIdentifier, old))
         decisions[month.id, default: [:]][asset.localIdentifier] = decision
@@ -187,12 +207,33 @@ final class PhotoLibraryStore: ObservableObject {
             if !swipeQueue.contains(asset.localIdentifier) { swipeQueue.append(asset.localIdentifier) }
         }
         persistDecisions()
+        DiagnosticLog.shared.record("photo.decision", details: [
+            "asset": assetTag,
+            "action": decision.rawValue,
+            "input": input,
+            "replaced": old?.rawValue ?? "none",
+            "month": month.id,
+            "position": "\(position)/\(month.assets.count)",
+            "queueCount": String(swipeQueue.count),
+            "queued": String(swipeQueue.contains(asset.localIdentifier))
+        ])
         swipeIndex += 1
         updateCompletionIfNeeded()
     }
 
+    func logCurrentPhotoPresentation(source: String) {
+        guard let month = activeMonth, let asset = currentSwipeAsset else { return }
+        DiagnosticLog.shared.record("photo.presented", details: [
+            "asset": DiagnosticLog.shared.assetTag(for: asset.localIdentifier),
+            "month": month.id,
+            "position": "\(currentMonthProgress.done + 1)/\(month.assets.count)",
+            "source": source
+        ])
+    }
+
     func undoLastDecision() {
         guard let month = activeMonth, let last = undoStack.popLast() else { return }
+        let undoneAssetTag = DiagnosticLog.shared.assetTag(for: last.assetID)
         if decisions[month.id]?[last.assetID] == .delete {
             swipeQueue.removeAll { $0 == last.assetID }
         }
@@ -204,6 +245,12 @@ final class PhotoLibraryStore: ObservableObject {
         }
         swipeIndex = max(0, swipeIndex - 1)
         persistDecisions()
+        DiagnosticLog.shared.record("photo.undo", details: [
+            "asset": undoneAssetTag,
+            "restored": last.decision?.rawValue ?? "undecided",
+            "month": month.id,
+            "queueCount": String(swipeQueue.count)
+        ])
         updateCompletionIfNeeded()
     }
 
@@ -222,20 +269,40 @@ final class PhotoLibraryStore: ObservableObject {
 
     func removeFromQueue(_ asset: PHAsset) {
         guard let month = activeMonth else { return }
+        let assetTag = DiagnosticLog.shared.assetTag(for: asset.localIdentifier)
+        let wasQueued = swipeQueue.contains(asset.localIdentifier)
         swipeQueue.removeAll { $0 == asset.localIdentifier }
         decisions[month.id, default: [:]][asset.localIdentifier] = .keep
         persistDecisions()
+        DiagnosticLog.shared.record("review.keep", details: [
+            "asset": assetTag,
+            "wasQueued": String(wasQueued),
+            "queueCount": String(swipeQueue.count),
+            "month": month.id
+        ])
         updateCompletionIfNeeded()
     }
 
     func confirmDeletion() {
         let assetsToDelete = currentDeletionAssets
         guard !assetsToDelete.isEmpty else {
+            DiagnosticLog.shared.record("deletion.confirm.empty", details: [
+                "queueCount": String(swipeQueue.count),
+                "month": activeMonth?.id ?? "none"
+            ])
             finishSessionWithoutDeletion()
             return
         }
         isDeleting = true
         let ids = assetsToDelete.map(\.localIdentifier)
+        let assetTags = ids.map { DiagnosticLog.shared.assetTag(for: $0) }
+        DiagnosticLog.shared.record("deletion.request", details: [
+            "assets": assetTags.joined(separator: ","),
+            "eligibleCount": String(assetsToDelete.count),
+            "queueCount": String(swipeQueue.count),
+            "allExplicitlyDelete": String(assetsToDelete.allSatisfy { decisions[activeMonth?.id ?? ""]?[$0.localIdentifier] == .delete }),
+            "month": activeMonth?.id ?? "none"
+        ])
         let bytes = assetsToDelete.reduce(Int64(0)) { $0 + Self.estimatedBytes(for: $1) }
         PHPhotoLibrary.shared().performChanges {
             PHAssetChangeRequest.deleteAssets(assetsToDelete as NSArray)
@@ -244,6 +311,11 @@ final class PhotoLibraryStore: ObservableObject {
                 guard let self else { return }
                 self.isDeleting = false
                 if success {
+                    DiagnosticLog.shared.record("deletion.success", details: [
+                        "assets": assetTags.joined(separator: ","),
+                        "count": String(ids.count),
+                        "month": self.activeMonth?.id ?? "none"
+                    ])
                     self.deletedCount += ids.count
                     self.savedBytes += bytes
                     self.defaults.set(self.deletedCount, forKey: self.deletedCountKey)
@@ -264,6 +336,12 @@ final class PhotoLibraryStore: ObservableObject {
                     self.swipeQueue = []
                     self.loadLibrary()
                 } else {
+                    DiagnosticLog.shared.record("deletion.failure", details: [
+                        "assets": assetTags.joined(separator: ","),
+                        "errorDomain": error.map { ($0 as NSError).domain } ?? "unknown",
+                        "errorCode": error.map { String(($0 as NSError).code) } ?? "unknown",
+                        "month": self.activeMonth?.id ?? "none"
+                    ])
                     self.alertMessage = error?.localizedDescription ?? "Photos couldn’t delete those images. Try again."
                 }
             }
@@ -271,6 +349,13 @@ final class PhotoLibraryStore: ObservableObject {
     }
 
     func finishSessionWithoutDeletion() {
+        if let month = activeMonth {
+            DiagnosticLog.shared.record("session.return_to_months", details: [
+                "month": month.id,
+                "progress": "\(currentMonthProgress.done)/\(currentMonthProgress.total)",
+                "queueCount": String(swipeQueue.count)
+            ])
+        }
         updateCompletionIfNeeded()
         activeMonth = nil
         swipeAssets = []

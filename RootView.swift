@@ -68,6 +68,7 @@ struct PermissionView: View {
 
 struct HomeView: View {
     @EnvironmentObject private var library: PhotoLibraryStore
+    @State private var showDiagnostics = false
 
     var body: some View {
         NavigationStack {
@@ -76,6 +77,10 @@ struct HomeView: View {
                     HStack(alignment: .firstTextBaseline) {
                         Text("swipewipe").font(.system(size: 34, weight: .black, design: .rounded)).tracking(-1.5)
                         Spacer()
+                        Button { showDiagnostics = true } label: {
+                            Label("Logs", systemImage: "ladybug")
+                                .font(.caption.weight(.bold)).foregroundStyle(.white)
+                        }
                         NavigationLink { StatsView() } label: {
                             Image(systemName: "chart.line.uptrend.xyaxis").font(.system(size: 22, weight: .semibold)).foregroundStyle(.white)
                         }
@@ -125,6 +130,7 @@ struct HomeView: View {
             .background(Palette.background)
             .toolbar(.hidden, for: .navigationBar)
             .refreshable { library.loadLibrary() }
+            .sheet(isPresented: $showDiagnostics) { DiagnosticsView() }
         }
     }
 
@@ -233,6 +239,10 @@ struct SwipeFlowView: View {
                 ZStack { Color.black.opacity(0.65).ignoresSafeArea(); ProgressView("Deleting photos…").tint(Palette.peach) }
             }
         }
+        .onAppear { library.logCurrentPhotoPresentation(source: "view-appeared") }
+        .onChange(of: library.currentSwipeAsset?.localIdentifier) { _ in
+            library.logCurrentPhotoPresentation(source: "current-asset-changed")
+        }
     }
 
     private var swipeScreen: some View {
@@ -253,7 +263,8 @@ struct SwipeFlowView: View {
             GeometryReader { proxy in
                 if let asset = library.currentSwipeAsset {
                     ZStack {
-                        AssetThumbnail(asset: asset, contentMode: .aspectFit, cornerRadius: 8)
+                        AssetThumbnail(asset: asset, contentMode: .aspectFit, cornerRadius: 8, diagnosticContext: "swipe-card")
+                            .id(asset.localIdentifier)
                         if dragOffset.width < -30 {
                             DecisionStamp(title: "DELETE", color: Palette.purple).rotationEffect(.degrees(-10)).offset(x: -40, y: -proxy.size.height * 0.32)
                         } else if dragOffset.width > 30 {
@@ -266,8 +277,8 @@ struct SwipeFlowView: View {
                     .gesture(DragGesture(minimumDistance: 12)
                         .onChanged { dragOffset = $0.translation }
                         .onEnded { value in
-                            if value.translation.width < -100 { decide(.delete) }
-                            else if value.translation.width > 100 { decide(.keep) }
+                            if value.translation.width < -100 { decide(.delete, input: "swipe-left") }
+                            else if value.translation.width > 100 { decide(.keep, input: "swipe-right") }
                             else { withAnimation(.spring) { dragOffset = .zero } }
                         })
                     .animation(.spring(response: 0.28, dampingFraction: 0.78), value: dragOffset)
@@ -276,21 +287,21 @@ struct SwipeFlowView: View {
             }
 
             HStack(alignment: .center) {
-                Button { decide(.delete) } label: { Text("DELETE").font(.system(size: 17, weight: .black, design: .rounded)).foregroundStyle(Palette.purple) }
+                Button { decide(.delete, input: "button-delete") } label: { Text("DELETE").font(.system(size: 17, weight: .black, design: .rounded)).foregroundStyle(Palette.purple) }
                 Spacer()
                 Button { if let asset = library.currentSwipeAsset { library.toggleBookmark(asset) } } label: {
                     Image(systemName: library.currentSwipeAsset.map(library.isBookmarked) == true ? "bookmark.fill" : "bookmark")
                         .font(.system(size: 22, weight: .semibold)).foregroundStyle(Palette.peach)
                 }
                 Spacer()
-                Button { decide(.keep) } label: { Text("KEEP").font(.system(size: 17, weight: .black, design: .rounded)).foregroundStyle(Palette.mint) }
+                Button { decide(.keep, input: "button-keep") } label: { Text("KEEP").font(.system(size: 17, weight: .black, design: .rounded)).foregroundStyle(Palette.mint) }
             }
             .padding(.horizontal, 26).padding(.top, 12).padding(.bottom, 20)
         }
     }
 
-    private func decide(_ decision: PhotoDecision) {
-        withAnimation(.easeInOut(duration: 0.18)) { dragOffset = .zero; library.decideCurrent(decision) }
+    private func decide(_ decision: PhotoDecision, input: String) {
+        withAnimation(.easeInOut(duration: 0.18)) { dragOffset = .zero; library.decideCurrent(decision, input: input) }
     }
 }
 
